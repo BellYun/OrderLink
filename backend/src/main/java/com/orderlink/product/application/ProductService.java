@@ -45,6 +45,14 @@ public class ProductService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public ProductDetailResult getDetail(Long productId) {
+        Product product = productRepository.findDetailById(productId)
+            .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        return ProductDetailResult.from(product);
+    }
+
     private void validateSkuUniqueness(Product product) {
         for (ProductVariant variant : product.getVariants()) {
             if (productVariantRepository.existsBySkuCode(variant.getSkuCode())) {
