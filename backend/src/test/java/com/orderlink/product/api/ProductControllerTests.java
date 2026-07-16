@@ -5,10 +5,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +27,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.orderlink.common.api.GlobalExceptionHandler;
 import com.orderlink.product.application.DuplicateSkuException;
 import com.orderlink.product.application.ProductCreateCommand;
+import com.orderlink.product.application.ProductDetailResult;
+import com.orderlink.product.application.ProductNotFoundException;
 import com.orderlink.product.application.ProductService;
+import com.orderlink.product.domain.ProductStatus;
 
 @WebMvcTest(ProductController.class)
 @Import(GlobalExceptionHandler.class)
@@ -64,6 +72,54 @@ class ProductControllerTests {
         assertThat(command.name()).isEqualTo("Ethiopia Guji");
         assertThat(command.variants()).hasSize(1);
         assertThat(command.variants().getFirst().skuCode()).isEqualTo("GUJI-200G-BEAN");
+    }
+
+    @Test
+    void returnsProductDetail() throws Exception {
+        Instant createdAt = Instant.parse("2026-07-16T06:00:00Z");
+        Instant updatedAt = Instant.parse("2026-07-16T06:10:00Z");
+        ProductDetailResult result = new ProductDetailResult(
+            42L,
+            "Kenya Nyeri",
+            "Washed process coffee beans",
+            ProductStatus.DRAFT,
+            List.of(new ProductDetailResult.Variant(
+                100L,
+                "NYERI-200G",
+                "200g whole bean",
+                new BigDecimal("19000.00")
+            )),
+            createdAt,
+            updatedAt
+        );
+        given(productService.getDetail(42L)).willReturn(result);
+
+        mockMvc.perform(get("/api/v1/products/{productId}", 42L))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(42))
+            .andExpect(jsonPath("$.name").value("Kenya Nyeri"))
+            .andExpect(jsonPath("$.description").value("Washed process coffee beans"))
+            .andExpect(jsonPath("$.status").value("DRAFT"))
+            .andExpect(jsonPath("$.variants[0].id").value(100))
+            .andExpect(jsonPath("$.variants[0].skuCode").value("NYERI-200G"))
+            .andExpect(jsonPath("$.variants[0].name").value("200g whole bean"))
+            .andExpect(jsonPath("$.variants[0].price").value(19000.00))
+            .andExpect(jsonPath("$.createdAt").value("2026-07-16T06:00:00Z"))
+            .andExpect(jsonPath("$.updatedAt").value("2026-07-16T06:10:00Z"));
+
+        verify(productService).getDetail(42L);
+    }
+
+    @Test
+    void returnsNotFoundWhenProductDoesNotExist() throws Exception {
+        given(productService.getDetail(999L)).willThrow(new ProductNotFoundException(999L));
+
+        mockMvc.perform(get("/api/v1/products/{productId}", 999L))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
+            .andExpect(jsonPath("$.message").value("Product not found: 999"))
+            .andExpect(jsonPath("$.path").value("/api/v1/products/999"));
     }
 
     @Test
