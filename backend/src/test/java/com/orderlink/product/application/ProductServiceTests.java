@@ -87,4 +87,32 @@ class ProductServiceTests {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("At least one product variant");
     }
+
+    @Test
+    void returnsProductDetail() {
+        Product product = Product.create("Kenya Nyeri", "Washed process coffee beans");
+        product.addVariant("NYERI-200G", "200g whole bean", new BigDecimal("19000"));
+        Long productId = productRepository.saveAndFlush(product).getId();
+        entityManager.clear();
+
+        ProductDetailResult result = productService.getDetail(productId);
+
+        assertThat(result.id()).isEqualTo(productId);
+        assertThat(result.name()).isEqualTo("Kenya Nyeri");
+        assertThat(result.description()).isEqualTo("Washed process coffee beans");
+        assertThat(result.status()).isEqualTo(ProductStatus.DRAFT);
+        assertThat(result.variants()).hasSize(1);
+        assertThat(result.variants().getFirst().id()).isNotNull();
+        assertThat(result.variants().getFirst().skuCode()).isEqualTo("NYERI-200G");
+        assertThat(result.variants().getFirst().price()).isEqualByComparingTo("19000.00");
+        assertThat(result.createdAt()).isNotNull();
+        assertThat(result.updatedAt()).isNotNull();
+    }
+
+    @Test
+    void throwsExceptionWhenProductDoesNotExist() {
+        assertThatThrownBy(() -> productService.getDetail(999L))
+            .isInstanceOf(ProductNotFoundException.class)
+            .hasMessage("Product not found: 999");
+    }
 }

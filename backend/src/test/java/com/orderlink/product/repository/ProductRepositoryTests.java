@@ -58,4 +58,21 @@ class ProductRepositoryTests {
         assertThatThrownBy(() -> productRepository.saveAndFlush(second))
             .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    void findsProductDetailWithVariantsLoaded() {
+        Product product = Product.create("Kenya Nyeri", "Washed process coffee beans");
+        product.addVariant("NYERI-200G", "200g whole bean", new BigDecimal("19000"));
+        product.addVariant("NYERI-500G", "500g whole bean", new BigDecimal("42000"));
+
+        Long productId = productRepository.saveAndFlush(product).getId();
+        entityManager.clear();
+
+        Product found = productRepository.findDetailById(productId).orElseThrow();
+
+        assertThat(entityManager.getEntityManagerFactory().getPersistenceUnitUtil().isLoaded(found, "variants"))
+            .isTrue();
+        assertThat(found.getVariants()).extracting(variant -> variant.getSkuCode())
+            .containsExactly("NYERI-200G", "NYERI-500G");
+    }
 }
