@@ -1,10 +1,13 @@
 package com.orderlink.product.application;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.orderlink.product.domain.Product;
+import com.orderlink.product.domain.ProductStatus;
 import com.orderlink.product.domain.ProductVariant;
 import com.orderlink.product.repository.ProductRepository;
 import com.orderlink.product.repository.ProductVariantRepository;
@@ -51,6 +54,15 @@ public class ProductService {
             .orElseThrow(() -> new ProductNotFoundException(productId));
 
         return ProductDetailResult.from(product);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductListResult getList(ProductStatus status, Pageable pageable) {
+        Page<Product> products = status == null
+            ? productRepository.findAll(pageable)
+            : productRepository.findAllByStatus(status, pageable);
+
+        return ProductListResult.from(products);
     }
 
     @Transactional
