@@ -2,6 +2,7 @@ package com.orderlink.grouppurchase.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -49,6 +50,61 @@ class GroupPurchaseTests {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> createGroupPurchase(variant, new BigDecimal("15000"), 100, STARTS_AT, STARTS_AT))
             .withMessageContaining("after start time");
+    }
+
+    @Test
+    void updatesDraftGroupPurchaseRecruitmentInfo() {
+        ProductVariant variant = createVariant();
+        GroupPurchase groupPurchase = createGroupPurchase(
+            variant,
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+        Instant newStartsAt = Instant.parse("2026-07-21T00:00:00Z");
+        Instant newEndsAt = Instant.parse("2026-07-28T00:00:00Z");
+
+        groupPurchase.updateRecruitmentInfo(
+            " Updated group purchase ",
+            new BigDecimal("14000"),
+            80,
+            newStartsAt,
+            newEndsAt
+        );
+
+        assertThat(groupPurchase.getProductVariant()).isSameAs(variant);
+        assertThat(groupPurchase.getTitle()).isEqualTo("Updated group purchase");
+        assertThat(groupPurchase.getGroupPrice()).isEqualByComparingTo("14000.00");
+        assertThat(groupPurchase.getTargetQuantity()).isEqualTo(80);
+        assertThat(groupPurchase.getStartsAt()).isEqualTo(newStartsAt);
+        assertThat(groupPurchase.getEndsAt()).isEqualTo(newEndsAt);
+        assertThat(groupPurchase.getStatus()).isEqualTo(GroupPurchaseStatus.DRAFT);
+    }
+
+    @Test
+    void rejectsUpdateAfterGroupPurchaseOpens() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        GroupPurchase groupPurchase = createGroupPurchase(
+            variant,
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+        groupPurchase.open(STARTS_AT);
+
+        assertThatIllegalStateException()
+            .isThrownBy(() -> groupPurchase.updateRecruitmentInfo(
+                "Updated group purchase",
+                new BigDecimal("14000"),
+                80,
+                STARTS_AT,
+                ENDS_AT
+            ))
+            .withMessage("Only a draft group purchase can be updated");
     }
 
     @Test
