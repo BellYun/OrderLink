@@ -72,4 +72,27 @@ class ProductTests {
 
         assertThat(product.getStatus()).isEqualTo(ProductStatus.ACTIVE);
     }
+
+    @Test
+    void updatesProductInfo() {
+        Product product = Product.create("Coffee Beans", "Freshly roasted");
+
+        product.updateInfo(" Ethiopia Guji ", " Natural process ");
+
+        assertThat(product.getName()).isEqualTo("Ethiopia Guji");
+        assertThat(product.getDescription()).isEqualTo("Natural process");
+    }
+
+    @Test
+    void rejectsInvalidProductNameOnUpdate() {
+        Product product = Product.create("Coffee Beans", null);
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> product.updateInfo(" ", "Description"))
+            .withMessageContaining("required");
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> product.updateInfo("a".repeat(101), "Description"))
+            .withMessageContaining("100 characters");
+    }
 }

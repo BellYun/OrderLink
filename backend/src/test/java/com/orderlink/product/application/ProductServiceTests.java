@@ -117,6 +117,34 @@ class ProductServiceTests {
     }
 
     @Test
+    void updatesProductInfo() {
+        Product product = Product.create("Before Update", "Old description");
+        product.addVariant("UPDATE-200G", "200g", new BigDecimal("18000"));
+        Long productId = productRepository.saveAndFlush(product).getId();
+
+        productService.update(productId, new ProductUpdateCommand(
+            "After Update",
+            "New description"
+        ));
+        entityManager.flush();
+        entityManager.clear();
+
+        Product updated = productRepository.findById(productId).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("After Update");
+        assertThat(updated.getDescription()).isEqualTo("New description");
+        assertThat(updated.getVariants()).hasSize(1);
+    }
+
+    @Test
+    void throwsExceptionWhenUpdatingMissingProduct() {
+        ProductUpdateCommand command = new ProductUpdateCommand("Coffee Beans", null);
+
+        assertThatThrownBy(() -> productService.update(999L, command))
+            .isInstanceOf(ProductNotFoundException.class)
+            .hasMessage("Product not found: 999");
+    }
+
+    @Test
     void activatesProduct() {
         Product product = Product.create("Ethiopia Guji", null);
         product.addVariant("GUJI-200G", "200g", new BigDecimal("18000"));
