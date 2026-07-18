@@ -39,6 +39,15 @@ public class ProductController {
         return ProductDetailResponse.from(productService.getDetail(productId));
     }
 
+    @PatchMapping("/{productId}")
+    public ResponseEntity<Void> update(
+        @PathVariable Long productId,
+        @Valid @RequestBody ProductUpdateRequest request
+    ) {
+        productService.update(productId, request.toCommand());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{productId}/activate")
     public ResponseEntity<Void> activate(@PathVariable Long productId) {
         productService.activate(productId);

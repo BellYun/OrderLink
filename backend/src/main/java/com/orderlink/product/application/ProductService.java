@@ -54,6 +54,14 @@ public class ProductService {
     }
 
     @Transactional
+    public void update(Long productId, ProductUpdateCommand command) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        product.updateInfo(command.name(), command.description());
+    }
+
+    @Transactional
     public void activate(Long productId) {
         Product product = productRepository.findDetailById(productId)
             .orElseThrow(() -> new ProductNotFoundException(productId));

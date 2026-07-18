@@ -55,7 +55,7 @@ public class Product {
     }
 
     private Product(String name, String description) {
-        this.name = requireText(name, "Product name is required");
+        this.name = normalizeName(name);
         this.description = normalizeDescription(description);
         this.status = ProductStatus.DRAFT;
     }
@@ -76,6 +76,11 @@ public class Product {
         ProductVariant variant = ProductVariant.create(this, normalizedSkuCode, name, price);
         variants.add(variant);
         return variant;
+    }
+
+    public void updateInfo(String name, String description) {
+        this.name = normalizeName(name);
+        this.description = normalizeDescription(description);
     }
 
     public void activate() {
@@ -122,6 +127,14 @@ public class Product {
             throw new IllegalArgumentException(message);
         }
         return value.trim();
+    }
+
+    private static String normalizeName(String name) {
+        String normalized = requireText(name, "Product name is required");
+        if (normalized.length() > 100) {
+            throw new IllegalArgumentException("Product name must not exceed 100 characters");
+        }
+        return normalized;
     }
 
     private static String normalizeDescription(String description) {
