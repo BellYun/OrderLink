@@ -9,6 +9,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.orderlink.grouppurchase.domain.GroupPurchase;
@@ -94,6 +95,68 @@ class GroupPurchaseServiceTests {
     void throwsExceptionWhenGroupPurchaseDoesNotExist() {
         assertThatThrownBy(() -> groupPurchaseService.open(999L))
             .isInstanceOf(GroupPurchaseNotFoundException.class);
+    }
+
+    @Test
+    void returnsGroupPurchaseDetail() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("DETAIL-GUJI-200G", "200g", new BigDecimal("20000"));
+        productRepository.saveAndFlush(product);
+
+        GroupPurchase groupPurchase = GroupPurchase.create(
+            variant,
+            "Ethiopia Guji group purchase",
+            new BigDecimal("15000"),
+            100,
+            Instant.parse("2026-07-20T00:00:00Z"),
+            Instant.parse("2026-07-27T00:00:00Z")
+        );
+        Long groupPurchaseId = groupPurchaseRepository.saveAndFlush(groupPurchase).getId();
+
+        GroupPurchaseDetailResult result = groupPurchaseService.getDetail(groupPurchaseId);
+
+        assertThat(result.id()).isEqualTo(groupPurchaseId);
+        assertThat(result.productName()).isEqualTo("Ethiopia Guji");
+        assertThat(result.skuCode()).isEqualTo("DETAIL-GUJI-200G");
+        assertThat(result.status()).isEqualTo(GroupPurchaseStatus.DRAFT);
+    }
+
+    @Test
+    void returnsPagedGroupPurchasesByStatus() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("LIST-GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        productRepository.saveAndFlush(product);
+
+        Instant now = Instant.now();
+        GroupPurchase draft = GroupPurchase.create(
+            variant,
+            "Draft group purchase",
+            new BigDecimal("15000"),
+            100,
+            now.minusSeconds(60),
+            now.plusSeconds(3600)
+        );
+        GroupPurchase open = GroupPurchase.create(
+            variant,
+            "Open group purchase",
+            new BigDecimal("14000"),
+            80,
+            now.minusSeconds(60),
+            now.plusSeconds(3600)
+        );
+        open.open(now);
+        groupPurchaseRepository.saveAllAndFlush(java.util.List.of(draft, open));
+
+        GroupPurchaseListResult result = groupPurchaseService.getList(
+            GroupPurchaseStatus.OPEN,
+            PageRequest.of(0, 10)
+        );
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().title()).isEqualTo("Open group purchase");
+        assertThat(result.items().getFirst().status()).isEqualTo(GroupPurchaseStatus.OPEN);
+        assertThat(result.totalElements()).isEqualTo(1);
     }
 
     private Long saveOpenableGroupPurchase() {
