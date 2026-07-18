@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.orderlink.product.domain.Product;
@@ -114,6 +115,40 @@ class ProductServiceTests {
         assertThatThrownBy(() -> productService.getDetail(999L))
             .isInstanceOf(ProductNotFoundException.class)
             .hasMessage("Product not found: 999");
+    }
+
+    @Test
+    void returnsPagedProducts() {
+        Product first = Product.create("Ethiopia Guji", null);
+        first.addVariant("LIST-GUJI-200G", "200g", new BigDecimal("18000"));
+        Product second = Product.create("Kenya Nyeri", null);
+        second.addVariant("LIST-NYERI-200G", "200g", new BigDecimal("19000"));
+        productRepository.saveAllAndFlush(List.of(first, second));
+
+        ProductListResult result = productService.getList(null, PageRequest.of(0, 20));
+
+        assertThat(result.items()).hasSize(2);
+        assertThat(result.totalElements()).isEqualTo(2);
+        assertThat(result.page()).isZero();
+    }
+
+    @Test
+    void returnsProductsByStatus() {
+        Product draft = Product.create("Draft Coffee", null);
+        draft.addVariant("LIST-DRAFT-200G", "200g", new BigDecimal("18000"));
+        Product active = Product.create("Active Coffee", null);
+        active.addVariant("LIST-ACTIVE-200G", "200g", new BigDecimal("19000"));
+        active.activate();
+        productRepository.saveAllAndFlush(List.of(draft, active));
+
+        ProductListResult result = productService.getList(
+            ProductStatus.ACTIVE,
+            PageRequest.of(0, 20)
+        );
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().name()).isEqualTo("Active Coffee");
+        assertThat(result.items().getFirst().status()).isEqualTo(ProductStatus.ACTIVE);
     }
 
     @Test
