@@ -2,6 +2,7 @@ package com.orderlink.product.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +32,7 @@ import com.orderlink.common.api.GlobalExceptionHandler;
 import com.orderlink.product.application.DuplicateSkuException;
 import com.orderlink.product.application.ProductCreateCommand;
 import com.orderlink.product.application.ProductDetailResult;
+import com.orderlink.product.application.ProductListResult;
 import com.orderlink.product.application.ProductNotFoundException;
 import com.orderlink.product.application.ProductService;
 import com.orderlink.product.application.ProductUpdateCommand;
@@ -123,6 +126,58 @@ class ProductControllerTests {
             .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
             .andExpect(jsonPath("$.message").value("Product not found: 999"))
             .andExpect(jsonPath("$.path").value("/api/v1/products/999"));
+    }
+
+    @Test
+    void returnsPagedProducts() throws Exception {
+        Instant createdAt = Instant.parse("2026-07-16T06:00:00Z");
+        ProductListResult result = new ProductListResult(
+            List.of(new ProductListResult.Item(
+                42L,
+                "Ethiopia Guji",
+                "Natural process coffee beans",
+                ProductStatus.ACTIVE,
+                createdAt,
+                createdAt
+            )),
+            0,
+            20,
+            1,
+            1
+        );
+        given(productService.getList(eq(ProductStatus.ACTIVE), any(Pageable.class)))
+            .willReturn(result);
+
+        mockMvc.perform(get("/api/v1/products")
+                .param("status", "active"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].id").value(42))
+            .andExpect(jsonPath("$.items[0].name").value("Ethiopia Guji"))
+            .andExpect(jsonPath("$.items[0].status").value("ACTIVE"))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void returnsBadRequestForUnsupportedProductStatus() throws Exception {
+        mockMvc.perform(get("/api/v1/products")
+                .param("status", "pending"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.message").value("Unsupported product status: pending"));
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void returnsBadRequestForInvalidProductPage() throws Exception {
+        mockMvc.perform(get("/api/v1/products")
+                .param("page", "-1"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.message").value("Page must not be negative"));
+
+        verifyNoInteractions(productService);
     }
 
     @Test
