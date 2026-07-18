@@ -62,6 +62,12 @@ public class GroupPurchaseController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{groupPurchaseId}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable Long groupPurchaseId) {
+        groupPurchaseService.cancel(groupPurchaseId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{groupPurchaseId}")
     public GroupPurchaseDetailResponse getDetail(@PathVariable Long groupPurchaseId) {
         return GroupPurchaseDetailResponse.from(groupPurchaseService.getDetail(groupPurchaseId));

@@ -137,6 +137,23 @@ class GroupPurchaseServiceTests {
     }
 
     @Test
+    void cancelsGroupPurchase() {
+        Long groupPurchaseId = saveOpenableGroupPurchase();
+
+        groupPurchaseService.cancel(groupPurchaseId);
+
+        GroupPurchase groupPurchase = groupPurchaseRepository.findById(groupPurchaseId).orElseThrow();
+        assertThat(groupPurchase.getStatus()).isEqualTo(GroupPurchaseStatus.CANCELLED);
+    }
+
+    @Test
+    void throwsExceptionWhenCancellingMissingGroupPurchase() {
+        assertThatThrownBy(() -> groupPurchaseService.cancel(999L))
+            .isInstanceOf(GroupPurchaseNotFoundException.class)
+            .hasMessage("Group purchase not found: 999");
+    }
+
+    @Test
     void throwsExceptionWhenGroupPurchaseDoesNotExist() {
         assertThatThrownBy(() -> groupPurchaseService.open(999L))
             .isInstanceOf(GroupPurchaseNotFoundException.class);
