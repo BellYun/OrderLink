@@ -3,6 +3,7 @@ package com.orderlink.product.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,6 +32,7 @@ import com.orderlink.product.application.ProductCreateCommand;
 import com.orderlink.product.application.ProductDetailResult;
 import com.orderlink.product.application.ProductNotFoundException;
 import com.orderlink.product.application.ProductService;
+import com.orderlink.product.application.ProductUpdateCommand;
 import com.orderlink.product.domain.ProductStatus;
 
 @WebMvcTest(ProductController.class)
@@ -191,6 +193,59 @@ class ProductControllerTests {
             .andExpect(jsonPath("$.code").value("DUPLICATE_SKU"))
             .andExpect(jsonPath("$.message").value("SKU code already exists: GUJI-200G-BEAN"))
             .andExpect(jsonPath("$.path").value("/api/v1/products"));
+    }
+
+    @Test
+    void updatesProductInfo() throws Exception {
+        mockMvc.perform(patch("/api/v1/products/{productId}", 42L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": "Updated Ethiopia Guji",
+                      "description": "Updated description"
+                    }
+                    """))
+            .andExpect(status().isNoContent());
+
+        verify(productService).update(
+            42L,
+            new ProductUpdateCommand("Updated Ethiopia Guji", "Updated description")
+        );
+    }
+
+    @Test
+    void returnsValidationErrorForInvalidUpdateRequest() throws Exception {
+        mockMvc.perform(patch("/api/v1/products/{productId}", 42L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": " "
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.fieldErrors.name").exists());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void returnsNotFoundWhenUpdatingMissingProduct() throws Exception {
+        ProductUpdateCommand command = new ProductUpdateCommand("Coffee Beans", null);
+        willThrow(new ProductNotFoundException(999L))
+            .given(productService)
+            .update(999L, command);
+
+        mockMvc.perform(patch("/api/v1/products/{productId}", 999L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": "Coffee Beans"
+                    }
+                    """))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
+            .andExpect(jsonPath("$.path").value("/api/v1/products/999"));
     }
 
     @Test
