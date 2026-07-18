@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.orderlink.grouppurchase.domain.GroupPurchase;
+import com.orderlink.grouppurchase.domain.GroupPurchaseStatus;
 import com.orderlink.grouppurchase.repository.GroupPurchaseRepository;
 import com.orderlink.product.application.ProductVariantNotFoundException;
 import com.orderlink.product.domain.Product;
@@ -65,5 +67,50 @@ class GroupPurchaseServiceTests {
         assertThatThrownBy(() -> groupPurchaseService.create(command))
             .isInstanceOf(ProductVariantNotFoundException.class)
             .hasMessage("Product variant not found: 999");
+    }
+
+    @Test
+    void opensGroupPurchase() {
+        Long groupPurchaseId = saveOpenableGroupPurchase();
+
+        groupPurchaseService.open(groupPurchaseId);
+
+        GroupPurchase groupPurchase = groupPurchaseRepository.findById(groupPurchaseId).orElseThrow();
+        assertThat(groupPurchase.getStatus()).isEqualTo(GroupPurchaseStatus.OPEN);
+    }
+
+    @Test
+    void closesGroupPurchase() {
+        Long groupPurchaseId = saveOpenableGroupPurchase();
+        groupPurchaseService.open(groupPurchaseId);
+
+        groupPurchaseService.close(groupPurchaseId);
+
+        GroupPurchase groupPurchase = groupPurchaseRepository.findById(groupPurchaseId).orElseThrow();
+        assertThat(groupPurchase.getStatus()).isEqualTo(GroupPurchaseStatus.CLOSED);
+    }
+
+    @Test
+    void throwsExceptionWhenGroupPurchaseDoesNotExist() {
+        assertThatThrownBy(() -> groupPurchaseService.open(999L))
+            .isInstanceOf(GroupPurchaseNotFoundException.class);
+    }
+
+    private Long saveOpenableGroupPurchase() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("OPEN-GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        productRepository.saveAndFlush(product);
+
+        Instant now = Instant.now();
+        GroupPurchase groupPurchase = GroupPurchase.create(
+            variant,
+            "Ethiopia Guji group purchase",
+            new BigDecimal("15000"),
+            100,
+            now.minusSeconds(60),
+            now.plusSeconds(3600)
+        );
+        return groupPurchaseRepository.saveAndFlush(groupPurchase).getId();
     }
 }

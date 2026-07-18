@@ -1,5 +1,7 @@
 package com.orderlink.grouppurchase.application;
 
+import java.time.Instant;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,5 +40,22 @@ public class GroupPurchaseService {
         );
 
         return groupPurchaseRepository.saveAndFlush(groupPurchase).getId();
+    }
+
+    @Transactional
+    public void open(Long groupPurchaseId) {
+        GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
+        groupPurchase.open(Instant.now());
+    }
+
+    @Transactional
+    public void close(Long groupPurchaseId) {
+        GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
+        groupPurchase.close();
+    }
+
+    private GroupPurchase getGroupPurchase(Long groupPurchaseId) {
+        return groupPurchaseRepository.findById(groupPurchaseId)
+            .orElseThrow(() -> new GroupPurchaseNotFoundException(groupPurchaseId));
     }
 }

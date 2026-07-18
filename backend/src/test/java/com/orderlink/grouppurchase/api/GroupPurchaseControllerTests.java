@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -77,6 +78,22 @@ class GroupPurchaseControllerTests {
             .andExpect(jsonPath("$.code").value("PRODUCT_VARIANT_NOT_FOUND"))
             .andExpect(jsonPath("$.message").value("Product variant not found: 100"))
             .andExpect(jsonPath("$.path").value("/api/v1/group-purchases"));
+    }
+
+    @Test
+    void opensGroupPurchase() throws Exception {
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/open", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(groupPurchaseService).open(42L);
+    }
+
+    @Test
+    void closesGroupPurchase() throws Exception {
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/close", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(groupPurchaseService).close(42L);
     }
 
     private static String validRequest() {
