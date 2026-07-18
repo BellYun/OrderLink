@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.orderlink.grouppurchase.domain.GroupPurchase;
+import com.orderlink.grouppurchase.repository.GroupPurchaseRepository;
 import com.orderlink.product.domain.Product;
 import com.orderlink.product.domain.ProductStatus;
 import com.orderlink.product.repository.ProductRepository;
@@ -27,6 +30,9 @@ class ProductServiceTests {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private GroupPurchaseRepository groupPurchaseRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -208,5 +214,56 @@ class ProductServiceTests {
     void throwsExceptionWhenActivatingMissingProduct() {
         assertThatThrownBy(() -> productService.activate(999L))
             .isInstanceOf(ProductNotFoundException.class);
+    }
+
+    @Test
+    void deletesDraftProduct() {
+        Product product = Product.create("Draft Coffee", null);
+        product.addVariant("DELETE-DRAFT-200G", "200g", new BigDecimal("18000"));
+        Long productId = productRepository.saveAndFlush(product).getId();
+
+        productService.delete(productId);
+        entityManager.flush();
+
+        assertThat(productRepository.existsById(productId)).isFalse();
+    }
+
+    @Test
+    void rejectsDeletingActiveProduct() {
+        Product product = Product.create("Active Coffee", null);
+        product.addVariant("DELETE-ACTIVE-200G", "200g", new BigDecimal("18000"));
+        product.activate();
+        Long productId = productRepository.saveAndFlush(product).getId();
+
+        assertThatThrownBy(() -> productService.delete(productId))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Only a draft product can be deleted");
+    }
+
+    @Test
+    void rejectsDeletingProductWithGroupPurchase() {
+        Product product = Product.create("Group Purchase Coffee", null);
+        var variant = product.addVariant("DELETE-GROUP-200G", "200g", new BigDecimal("18000"));
+        Long productId = productRepository.saveAndFlush(product).getId();
+        GroupPurchase groupPurchase = GroupPurchase.create(
+            variant,
+            "Coffee group purchase",
+            new BigDecimal("15000"),
+            100,
+            Instant.parse("2026-07-20T00:00:00Z"),
+            Instant.parse("2026-07-27T00:00:00Z")
+        );
+        groupPurchaseRepository.saveAndFlush(groupPurchase);
+
+        assertThatThrownBy(() -> productService.delete(productId))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Product with group purchases cannot be deleted");
+    }
+
+    @Test
+    void throwsExceptionWhenDeletingMissingProduct() {
+        assertThatThrownBy(() -> productService.delete(999L))
+            .isInstanceOf(ProductNotFoundException.class)
+            .hasMessage("Product not found: 999");
     }
 }

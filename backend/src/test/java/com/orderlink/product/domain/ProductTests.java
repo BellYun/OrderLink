@@ -1,6 +1,7 @@
 package com.orderlink.product.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
@@ -94,5 +95,20 @@ class ProductTests {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> product.updateInfo("a".repeat(101), "Description"))
             .withMessageContaining("100 characters");
+    }
+
+    @Test
+    void onlyAllowsDeletingDraftProduct() {
+        Product draft = Product.create("Draft Coffee", null);
+
+        assertThatCode(draft::validateDeletion).doesNotThrowAnyException();
+
+        Product active = Product.create("Active Coffee", null);
+        active.addVariant("ACTIVE-200G", "200g", new BigDecimal("18000"));
+        active.activate();
+
+        assertThatIllegalStateException()
+            .isThrownBy(active::validateDeletion)
+            .withMessage("Only a draft product can be deleted");
     }
 }
