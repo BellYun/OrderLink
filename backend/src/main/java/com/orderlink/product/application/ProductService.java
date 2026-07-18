@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.orderlink.grouppurchase.repository.GroupPurchaseRepository;
 import com.orderlink.product.domain.Product;
 import com.orderlink.product.domain.ProductStatus;
 import com.orderlink.product.domain.ProductVariant;
@@ -17,13 +18,16 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final GroupPurchaseRepository groupPurchaseRepository;
 
     public ProductService(
         ProductRepository productRepository,
-        ProductVariantRepository productVariantRepository
+        ProductVariantRepository productVariantRepository,
+        GroupPurchaseRepository groupPurchaseRepository
     ) {
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
+        this.groupPurchaseRepository = groupPurchaseRepository;
     }
 
     @Transactional
@@ -87,6 +91,19 @@ public class ProductService {
             .orElseThrow(() -> new ProductNotFoundException(productId));
 
         product.deactivate();
+    }
+
+    @Transactional
+    public void delete(Long productId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductNotFoundException(productId));
+        product.validateDeletion();
+
+        if (groupPurchaseRepository.existsByProductVariantProductId(productId)) {
+            throw new IllegalStateException("Product with group purchases cannot be deleted");
+        }
+
+        productRepository.delete(product);
     }
 
     private void validateSkuUniqueness(Product product) {

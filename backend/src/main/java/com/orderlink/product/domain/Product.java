@@ -94,6 +94,12 @@ public class Product {
         status = ProductStatus.INACTIVE;
     }
 
+    public void validateDeletion() {
+        if (status != ProductStatus.DRAFT) {
+            throw new IllegalStateException("Only a draft product can be deleted");
+        }
+    }
+
     public Long getId() {
         return id;
     }
