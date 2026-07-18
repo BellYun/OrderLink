@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -190,5 +191,21 @@ class ProductControllerTests {
             .andExpect(jsonPath("$.code").value("DUPLICATE_SKU"))
             .andExpect(jsonPath("$.message").value("SKU code already exists: GUJI-200G-BEAN"))
             .andExpect(jsonPath("$.path").value("/api/v1/products"));
+    }
+
+    @Test
+    void activatesProduct() throws Exception {
+        mockMvc.perform(patch("/api/v1/products/{productId}/activate", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(productService).activate(42L);
+    }
+
+    @Test
+    void deactivatesProduct() throws Exception {
+        mockMvc.perform(patch("/api/v1/products/{productId}/deactivate", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(productService).deactivate(42L);
     }
 }

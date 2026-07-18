@@ -53,6 +53,22 @@ public class ProductService {
         return ProductDetailResult.from(product);
     }
 
+    @Transactional
+    public void activate(Long productId) {
+        Product product = productRepository.findDetailById(productId)
+            .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        product.activate();
+    }
+
+    @Transactional
+    public void deactivate(Long productId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductNotFoundException(productId));
+
+        product.deactivate();
+    }
+
     private void validateSkuUniqueness(Product product) {
         for (ProductVariant variant : product.getVariants()) {
             if (productVariantRepository.existsBySkuCode(variant.getSkuCode())) {

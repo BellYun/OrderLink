@@ -115,4 +115,35 @@ class ProductServiceTests {
             .isInstanceOf(ProductNotFoundException.class)
             .hasMessage("Product not found: 999");
     }
+
+    @Test
+    void activatesProduct() {
+        Product product = Product.create("Ethiopia Guji", null);
+        product.addVariant("GUJI-200G", "200g", new BigDecimal("18000"));
+        Long productId = productRepository.saveAndFlush(product).getId();
+
+        productService.activate(productId);
+
+        Product activated = productRepository.findById(productId).orElseThrow();
+        assertThat(activated.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+    }
+
+    @Test
+    void deactivatesProduct() {
+        Product product = Product.create("Ethiopia Guji", null);
+        product.addVariant("GUJI-200G", "200g", new BigDecimal("18000"));
+        product.activate();
+        Long productId = productRepository.saveAndFlush(product).getId();
+
+        productService.deactivate(productId);
+
+        Product deactivated = productRepository.findById(productId).orElseThrow();
+        assertThat(deactivated.getStatus()).isEqualTo(ProductStatus.INACTIVE);
+    }
+
+    @Test
+    void throwsExceptionWhenActivatingMissingProduct() {
+        assertThatThrownBy(() -> productService.activate(999L))
+            .isInstanceOf(ProductNotFoundException.class);
+    }
 }

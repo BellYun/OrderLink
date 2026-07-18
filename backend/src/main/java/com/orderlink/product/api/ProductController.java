@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +37,17 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ProductDetailResponse getDetail(@PathVariable Long productId) {
         return ProductDetailResponse.from(productService.getDetail(productId));
+    }
+
+    @PatchMapping("/{productId}/activate")
+    public ResponseEntity<Void> activate(@PathVariable Long productId) {
+        productService.activate(productId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{productId}/deactivate")
+    public ResponseEntity<Void> deactivate(@PathVariable Long productId) {
+        productService.deactivate(productId);
+        return ResponseEntity.noContent().build();
     }
 }
