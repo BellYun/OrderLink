@@ -140,6 +140,45 @@ class GroupPurchaseTests {
         assertThat(draft.getStatus()).isEqualTo(GroupPurchaseStatus.CANCELLED);
     }
 
+    @Test
+    void cancelsOpenGroupPurchase() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("CANCEL-GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        GroupPurchase groupPurchase = createGroupPurchase(
+            variant,
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+        groupPurchase.open(STARTS_AT);
+
+        groupPurchase.cancel();
+
+        assertThat(groupPurchase.getStatus()).isEqualTo(GroupPurchaseStatus.CANCELLED);
+    }
+
+    @Test
+    void rejectsCancelAfterGroupPurchaseCloses() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("CLOSED-GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        GroupPurchase groupPurchase = createGroupPurchase(
+            variant,
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+        groupPurchase.open(STARTS_AT);
+        groupPurchase.close();
+
+        assertThatIllegalStateException()
+            .isThrownBy(groupPurchase::cancel)
+            .withMessage("Only a draft or open group purchase can be cancelled");
+    }
+
     private static ProductVariant createVariant() {
         Product product = Product.create("Ethiopia Guji", null);
         return product.addVariant("GUJI-200G", "200g", new BigDecimal("20000"));

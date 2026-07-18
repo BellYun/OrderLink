@@ -157,6 +157,39 @@ class GroupPurchaseControllerTests {
     }
 
     @Test
+    void cancelsGroupPurchase() throws Exception {
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/cancel", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(groupPurchaseService).cancel(42L);
+    }
+
+    @Test
+    void returnsBadRequestWhenGroupPurchaseCannotBeCancelled() throws Exception {
+        willThrow(new IllegalStateException("Only a draft or open group purchase can be cancelled"))
+            .given(groupPurchaseService)
+            .cancel(42L);
+
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/cancel", 42L))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.message")
+                .value("Only a draft or open group purchase can be cancelled"));
+    }
+
+    @Test
+    void returnsNotFoundWhenCancellingMissingGroupPurchase() throws Exception {
+        willThrow(new GroupPurchaseNotFoundException(42L))
+            .given(groupPurchaseService)
+            .cancel(42L);
+
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/cancel", 42L))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("GROUP_PURCHASE_NOT_FOUND"))
+            .andExpect(jsonPath("$.message").value("Group purchase not found: 42"));
+    }
+
+    @Test
     void returnsGroupPurchaseDetail() throws Exception {
         Instant startsAt = Instant.parse("2026-07-20T00:00:00Z");
         Instant endsAt = Instant.parse("2026-07-27T00:00:00Z");
