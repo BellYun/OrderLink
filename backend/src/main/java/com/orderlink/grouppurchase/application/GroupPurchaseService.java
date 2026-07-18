@@ -2,10 +2,13 @@ package com.orderlink.grouppurchase.application;
 
 import java.time.Instant;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.orderlink.grouppurchase.domain.GroupPurchase;
+import com.orderlink.grouppurchase.domain.GroupPurchaseStatus;
 import com.orderlink.grouppurchase.repository.GroupPurchaseRepository;
 import com.orderlink.product.application.ProductVariantNotFoundException;
 import com.orderlink.product.domain.ProductVariant;
@@ -52,6 +55,23 @@ public class GroupPurchaseService {
     public void close(Long groupPurchaseId) {
         GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
         groupPurchase.close();
+    }
+
+    @Transactional(readOnly = true)
+    public GroupPurchaseDetailResult getDetail(Long groupPurchaseId) {
+        GroupPurchase groupPurchase = groupPurchaseRepository.findDetailById(groupPurchaseId)
+            .orElseThrow(() -> new GroupPurchaseNotFoundException(groupPurchaseId));
+
+        return GroupPurchaseDetailResult.from(groupPurchase);
+    }
+
+    @Transactional(readOnly = true)
+    public GroupPurchaseListResult getList(GroupPurchaseStatus status, Pageable pageable) {
+        Page<GroupPurchase> groupPurchases = status == null
+            ? groupPurchaseRepository.findAll(pageable)
+            : groupPurchaseRepository.findAllByStatus(status, pageable);
+
+        return GroupPurchaseListResult.from(groupPurchases);
     }
 
     private GroupPurchase getGroupPurchase(Long groupPurchaseId) {
