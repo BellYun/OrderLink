@@ -3,6 +3,8 @@ package com.orderlink.grouppurchase.api;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +33,17 @@ public class GroupPurchaseController {
 
         return ResponseEntity.created(location)
             .body(new GroupPurchaseCreateResponse(groupPurchaseId));
+    }
+
+    @PatchMapping("/{groupPurchaseId}/open")
+    public ResponseEntity<Void> open(@PathVariable Long groupPurchaseId) {
+        groupPurchaseService.open(groupPurchaseId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{groupPurchaseId}/close")
+    public ResponseEntity<Void> close(@PathVariable Long groupPurchaseId) {
+        groupPurchaseService.close(groupPurchaseId);
+        return ResponseEntity.noContent().build();
     }
 }
