@@ -41,6 +41,15 @@ public class GroupPurchaseController {
             .body(new GroupPurchaseCreateResponse(groupPurchaseId));
     }
 
+    @PatchMapping("/{groupPurchaseId}")
+    public ResponseEntity<Void> update(
+        @PathVariable Long groupPurchaseId,
+        @Valid @RequestBody GroupPurchaseUpdateRequest request
+    ) {
+        groupPurchaseService.update(groupPurchaseId, request.toCommand());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{groupPurchaseId}/open")
     public ResponseEntity<Void> open(@PathVariable Long groupPurchaseId) {
         groupPurchaseService.open(groupPurchaseId);
