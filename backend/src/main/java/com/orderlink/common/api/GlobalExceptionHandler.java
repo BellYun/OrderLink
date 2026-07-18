@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.orderlink.product.application.DuplicateSkuException;
 import com.orderlink.product.application.ProductNotFoundException;
+import com.orderlink.product.application.ProductVariantNotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -79,6 +80,20 @@ public class GlobalExceptionHandler {
         return createResponse(
             HttpStatus.NOT_FOUND,
             "PRODUCT_NOT_FOUND",
+            exception.getMessage(),
+            request,
+            Map.of()
+        );
+    }
+
+    @ExceptionHandler(ProductVariantNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleProductVariantNotFound(
+        ProductVariantNotFoundException exception,
+        HttpServletRequest request
+    ) {
+        return createResponse(
+            HttpStatus.NOT_FOUND,
+            "PRODUCT_VARIANT_NOT_FOUND",
             exception.getMessage(),
             request,
             Map.of()
