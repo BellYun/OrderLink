@@ -93,6 +93,29 @@ public class GroupPurchase {
         return new GroupPurchase(productVariant, title, groupPrice, targetQuantity, startsAt, endsAt);
     }
 
+    public void updateRecruitmentInfo(
+        String title,
+        BigDecimal groupPrice,
+        int targetQuantity,
+        Instant startsAt,
+        Instant endsAt
+    ) {
+        requireStatus(GroupPurchaseStatus.DRAFT, "Only a draft group purchase can be updated");
+
+        String normalizedTitle = normalizeTitle(title);
+        BigDecimal normalizedGroupPrice = normalizeGroupPrice(groupPrice, productVariant.getPrice());
+        int normalizedTargetQuantity = requirePositiveTargetQuantity(targetQuantity);
+        Instant normalizedStartsAt = requireInstant(startsAt, "Start time is required");
+        Instant normalizedEndsAt = requireInstant(endsAt, "End time is required");
+        validatePeriod(normalizedStartsAt, normalizedEndsAt);
+
+        this.title = normalizedTitle;
+        this.groupPrice = normalizedGroupPrice;
+        this.targetQuantity = normalizedTargetQuantity;
+        this.startsAt = normalizedStartsAt;
+        this.endsAt = normalizedEndsAt;
+    }
+
     public void open(Instant openedAt) {
         requireStatus(GroupPurchaseStatus.DRAFT, "Only a draft group purchase can be opened");
         if (productVariant.getProduct().getStatus() != ProductStatus.ACTIVE) {

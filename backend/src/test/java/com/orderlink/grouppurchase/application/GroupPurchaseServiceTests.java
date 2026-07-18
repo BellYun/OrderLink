@@ -71,6 +71,51 @@ class GroupPurchaseServiceTests {
     }
 
     @Test
+    void updatesGroupPurchaseRecruitmentInfo() {
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("UPDATE-GUJI-200G", "200g", new BigDecimal("20000"));
+        productRepository.saveAndFlush(product);
+        GroupPurchase groupPurchase = GroupPurchase.create(
+            variant,
+            "Ethiopia Guji group purchase",
+            new BigDecimal("15000"),
+            100,
+            Instant.parse("2026-07-20T00:00:00Z"),
+            Instant.parse("2026-07-27T00:00:00Z")
+        );
+        Long groupPurchaseId = groupPurchaseRepository.saveAndFlush(groupPurchase).getId();
+        GroupPurchaseUpdateCommand command = new GroupPurchaseUpdateCommand(
+            "Updated group purchase",
+            new BigDecimal("14000"),
+            80,
+            Instant.parse("2026-07-21T00:00:00Z"),
+            Instant.parse("2026-07-28T00:00:00Z")
+        );
+
+        groupPurchaseService.update(groupPurchaseId, command);
+
+        GroupPurchase updated = groupPurchaseRepository.findById(groupPurchaseId).orElseThrow();
+        assertThat(updated.getTitle()).isEqualTo("Updated group purchase");
+        assertThat(updated.getGroupPrice()).isEqualByComparingTo("14000.00");
+        assertThat(updated.getTargetQuantity()).isEqualTo(80);
+    }
+
+    @Test
+    void throwsExceptionWhenUpdatingMissingGroupPurchase() {
+        GroupPurchaseUpdateCommand command = new GroupPurchaseUpdateCommand(
+            "Updated group purchase",
+            new BigDecimal("14000"),
+            80,
+            Instant.parse("2026-07-21T00:00:00Z"),
+            Instant.parse("2026-07-28T00:00:00Z")
+        );
+
+        assertThatThrownBy(() -> groupPurchaseService.update(999L, command))
+            .isInstanceOf(GroupPurchaseNotFoundException.class)
+            .hasMessage("Group purchase not found: 999");
+    }
+
+    @Test
     void opensGroupPurchase() {
         Long groupPurchaseId = saveOpenableGroupPurchase();
 

@@ -46,6 +46,18 @@ public class GroupPurchaseService {
     }
 
     @Transactional
+    public void update(Long groupPurchaseId, GroupPurchaseUpdateCommand command) {
+        GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
+        groupPurchase.updateRecruitmentInfo(
+            command.title(),
+            command.groupPrice(),
+            command.targetQuantity(),
+            command.startsAt(),
+            command.endsAt()
+        );
+    }
+
+    @Transactional
     public void open(Long groupPurchaseId) {
         GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
         groupPurchase.open(Instant.now());

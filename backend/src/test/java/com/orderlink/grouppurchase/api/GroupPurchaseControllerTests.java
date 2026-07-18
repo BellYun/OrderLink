@@ -3,6 +3,7 @@ package com.orderlink.grouppurchase.api;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,7 +30,9 @@ import com.orderlink.common.api.GlobalExceptionHandler;
 import com.orderlink.grouppurchase.application.GroupPurchaseCreateCommand;
 import com.orderlink.grouppurchase.application.GroupPurchaseDetailResult;
 import com.orderlink.grouppurchase.application.GroupPurchaseListResult;
+import com.orderlink.grouppurchase.application.GroupPurchaseNotFoundException;
 import com.orderlink.grouppurchase.application.GroupPurchaseService;
+import com.orderlink.grouppurchase.application.GroupPurchaseUpdateCommand;
 import com.orderlink.grouppurchase.domain.GroupPurchaseStatus;
 import com.orderlink.product.application.ProductVariantNotFoundException;
 
@@ -88,6 +91,53 @@ class GroupPurchaseControllerTests {
             .andExpect(jsonPath("$.code").value("PRODUCT_VARIANT_NOT_FOUND"))
             .andExpect(jsonPath("$.message").value("Product variant not found: 100"))
             .andExpect(jsonPath("$.path").value("/api/v1/group-purchases"));
+    }
+
+    @Test
+    void updatesGroupPurchaseRecruitmentInfo() throws Exception {
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}", 42L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validUpdateRequest()))
+            .andExpect(status().isNoContent());
+
+        verify(groupPurchaseService).update(42L, new GroupPurchaseUpdateCommand(
+            "Updated group purchase",
+            new BigDecimal("14000"),
+            80,
+            Instant.parse("2026-07-21T00:00:00Z"),
+            Instant.parse("2026-07-28T00:00:00Z")
+        ));
+    }
+
+    @Test
+    void returnsValidationErrorForInvalidUpdateRequest() throws Exception {
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}", 42L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": " ",
+                      "groupPrice": 0,
+                      "targetQuantity": 0
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(groupPurchaseService);
+    }
+
+    @Test
+    void returnsNotFoundWhenUpdatingMissingGroupPurchase() throws Exception {
+        willThrow(new GroupPurchaseNotFoundException(42L))
+            .given(groupPurchaseService)
+            .update(eq(42L), any(GroupPurchaseUpdateCommand.class));
+
+        mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}", 42L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validUpdateRequest()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("GROUP_PURCHASE_NOT_FOUND"))
+            .andExpect(jsonPath("$.message").value("Group purchase not found: 42"));
     }
 
     @Test
@@ -187,6 +237,18 @@ class GroupPurchaseControllerTests {
               "targetQuantity": 100,
               "startsAt": "2026-07-20T00:00:00Z",
               "endsAt": "2026-07-27T00:00:00Z"
+            }
+            """;
+    }
+
+    private static String validUpdateRequest() {
+        return """
+            {
+              "title": "Updated group purchase",
+              "groupPrice": 14000,
+              "targetQuantity": 80,
+              "startsAt": "2026-07-21T00:00:00Z",
+              "endsAt": "2026-07-28T00:00:00Z"
             }
             """;
     }
