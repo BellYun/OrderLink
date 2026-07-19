@@ -15,6 +15,8 @@ public interface GroupPurchaseRepository extends JpaRepository<GroupPurchase, Lo
 
     Page<GroupPurchase> findAllByStatus(GroupPurchaseStatus status, Pageable pageable);
 
+    boolean existsByProductVariantProductId(Long productId);
+
     @Query("""
         select groupPurchase
         from GroupPurchase groupPurchase

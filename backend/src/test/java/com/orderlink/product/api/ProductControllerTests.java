@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -317,5 +318,37 @@ class ProductControllerTests {
             .andExpect(status().isNoContent());
 
         verify(productService).deactivate(42L);
+    }
+
+    @Test
+    void deletesProduct() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/{productId}", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(productService).delete(42L);
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingMissingProduct() throws Exception {
+        willThrow(new ProductNotFoundException(42L))
+            .given(productService)
+            .delete(42L);
+
+        mockMvc.perform(delete("/api/v1/products/{productId}", 42L))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
+            .andExpect(jsonPath("$.message").value("Product not found: 42"));
+    }
+
+    @Test
+    void returnsBadRequestWhenProductCannotBeDeleted() throws Exception {
+        willThrow(new IllegalStateException("Only a draft product can be deleted"))
+            .given(productService)
+            .delete(42L);
+
+        mockMvc.perform(delete("/api/v1/products/{productId}", 42L))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.message").value("Only a draft product can be deleted"));
     }
 }

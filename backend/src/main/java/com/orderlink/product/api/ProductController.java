@@ -6,6 +6,7 @@ import java.util.Locale;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -79,6 +80,12 @@ public class ProductController {
     @PatchMapping("/{productId}/deactivate")
     public ResponseEntity<Void> deactivate(@PathVariable Long productId) {
         productService.deactivate(productId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> delete(@PathVariable Long productId) {
+        productService.delete(productId);
         return ResponseEntity.noContent().build();
     }
 
