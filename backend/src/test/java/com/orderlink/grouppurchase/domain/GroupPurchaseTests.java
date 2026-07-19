@@ -1,6 +1,7 @@
 package com.orderlink.grouppurchase.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
@@ -177,6 +178,35 @@ class GroupPurchaseTests {
         assertThatIllegalStateException()
             .isThrownBy(groupPurchase::cancel)
             .withMessage("Only a draft or open group purchase can be cancelled");
+    }
+
+    @Test
+    void onlyAllowsDeletingDraftGroupPurchase() {
+        GroupPurchase draft = createGroupPurchase(
+            createVariant(),
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+
+        assertThatCode(draft::validateDeletion).doesNotThrowAnyException();
+
+        Product product = Product.create("Ethiopia Guji", null);
+        ProductVariant variant = product.addVariant("DELETE-GUJI-200G", "200g", new BigDecimal("20000"));
+        product.activate();
+        GroupPurchase open = createGroupPurchase(
+            variant,
+            new BigDecimal("15000"),
+            100,
+            STARTS_AT,
+            ENDS_AT
+        );
+        open.open(STARTS_AT);
+
+        assertThatIllegalStateException()
+            .isThrownBy(open::validateDeletion)
+            .withMessage("Only a draft group purchase can be deleted");
     }
 
     private static ProductVariant createVariant() {

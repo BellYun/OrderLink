@@ -75,6 +75,13 @@ public class GroupPurchaseService {
         groupPurchase.cancel();
     }
 
+    @Transactional
+    public void delete(Long groupPurchaseId) {
+        GroupPurchase groupPurchase = getGroupPurchase(groupPurchaseId);
+        groupPurchase.validateDeletion();
+        groupPurchaseRepository.delete(groupPurchase);
+    }
+
     @Transactional(readOnly = true)
     public GroupPurchaseDetailResult getDetail(Long groupPurchaseId) {
         GroupPurchase groupPurchase = groupPurchaseRepository.findDetailById(groupPurchaseId)

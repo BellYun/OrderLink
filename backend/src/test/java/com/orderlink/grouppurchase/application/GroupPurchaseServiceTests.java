@@ -154,6 +154,33 @@ class GroupPurchaseServiceTests {
     }
 
     @Test
+    void deletesDraftGroupPurchase() {
+        Long groupPurchaseId = saveOpenableGroupPurchase();
+
+        groupPurchaseService.delete(groupPurchaseId);
+        groupPurchaseRepository.flush();
+
+        assertThat(groupPurchaseRepository.existsById(groupPurchaseId)).isFalse();
+    }
+
+    @Test
+    void rejectsDeletingOpenGroupPurchase() {
+        Long groupPurchaseId = saveOpenableGroupPurchase();
+        groupPurchaseService.open(groupPurchaseId);
+
+        assertThatThrownBy(() -> groupPurchaseService.delete(groupPurchaseId))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Only a draft group purchase can be deleted");
+    }
+
+    @Test
+    void throwsExceptionWhenDeletingMissingGroupPurchase() {
+        assertThatThrownBy(() -> groupPurchaseService.delete(999L))
+            .isInstanceOf(GroupPurchaseNotFoundException.class)
+            .hasMessage("Group purchase not found: 999");
+    }
+
+    @Test
     void throwsExceptionWhenGroupPurchaseDoesNotExist() {
         assertThatThrownBy(() -> groupPurchaseService.open(999L))
             .isInstanceOf(GroupPurchaseNotFoundException.class);
