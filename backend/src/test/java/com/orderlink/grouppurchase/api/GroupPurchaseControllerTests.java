@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -184,6 +185,38 @@ class GroupPurchaseControllerTests {
             .cancel(42L);
 
         mockMvc.perform(patch("/api/v1/group-purchases/{groupPurchaseId}/cancel", 42L))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("GROUP_PURCHASE_NOT_FOUND"))
+            .andExpect(jsonPath("$.message").value("Group purchase not found: 42"));
+    }
+
+    @Test
+    void deletesDraftGroupPurchase() throws Exception {
+        mockMvc.perform(delete("/api/v1/group-purchases/{groupPurchaseId}", 42L))
+            .andExpect(status().isNoContent());
+
+        verify(groupPurchaseService).delete(42L);
+    }
+
+    @Test
+    void returnsBadRequestWhenGroupPurchaseCannotBeDeleted() throws Exception {
+        willThrow(new IllegalStateException("Only a draft group purchase can be deleted"))
+            .given(groupPurchaseService)
+            .delete(42L);
+
+        mockMvc.perform(delete("/api/v1/group-purchases/{groupPurchaseId}", 42L))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.message").value("Only a draft group purchase can be deleted"));
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingMissingGroupPurchase() throws Exception {
+        willThrow(new GroupPurchaseNotFoundException(42L))
+            .given(groupPurchaseService)
+            .delete(42L);
+
+        mockMvc.perform(delete("/api/v1/group-purchases/{groupPurchaseId}", 42L))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value("GROUP_PURCHASE_NOT_FOUND"))
             .andExpect(jsonPath("$.message").value("Group purchase not found: 42"));
