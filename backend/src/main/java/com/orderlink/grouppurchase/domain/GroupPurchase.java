@@ -141,6 +141,10 @@ public class GroupPurchase {
         status = GroupPurchaseStatus.CANCELLED;
     }
 
+    public void validateDeletion() {
+        requireStatus(GroupPurchaseStatus.DRAFT, "Only a draft group purchase can be deleted");
+    }
+
     public Long getId() {
         return id;
     }

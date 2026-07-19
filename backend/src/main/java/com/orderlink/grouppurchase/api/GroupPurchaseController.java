@@ -6,6 +6,7 @@ import java.util.Locale;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,6 +66,12 @@ public class GroupPurchaseController {
     @PatchMapping("/{groupPurchaseId}/cancel")
     public ResponseEntity<Void> cancel(@PathVariable Long groupPurchaseId) {
         groupPurchaseService.cancel(groupPurchaseId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{groupPurchaseId}")
+    public ResponseEntity<Void> delete(@PathVariable Long groupPurchaseId) {
+        groupPurchaseService.delete(groupPurchaseId);
         return ResponseEntity.noContent().build();
     }
 
