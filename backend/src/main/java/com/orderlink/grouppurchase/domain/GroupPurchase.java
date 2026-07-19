@@ -145,6 +145,15 @@ public class GroupPurchase {
         requireStatus(GroupPurchaseStatus.DRAFT, "Only a draft group purchase can be deleted");
     }
 
+    public void validateOrderable(Instant orderedAt) {
+        requireStatus(GroupPurchaseStatus.OPEN, "Only an open group purchase can receive orders");
+
+        Instant normalizedOrderedAt = requireInstant(orderedAt, "Order time is required");
+        if (normalizedOrderedAt.isBefore(startsAt) || !normalizedOrderedAt.isBefore(endsAt)) {
+            throw new IllegalStateException("Group purchase is not within its recruitment period");
+        }
+    }
+
     public Long getId() {
         return id;
     }
